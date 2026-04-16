@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>FieldBox – Artifact Field Recorder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: #F5EFE6; font-family: Georgia, 'Times New Roman', serif; }
+    input, textarea, button { font-family: Georgia, 'Times New Roman', serif; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #F5EFE6; }
+    ::-webkit-scrollbar-thumb { background: #C8842A; border-radius: 2px; }
+
+    #app { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; color: #2C1A0E; }
+
+    .header { background: #2C1A0E; color: #FFF8EF; padding: 24px 20px 16px; border-bottom: 3px solid #C8842A; }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .app-title { font-size: 26px; font-weight: bold; letter-spacing: 3px; }
+    .app-sub { font-size: 11px; letter-spacing: 2px; opacity: 0.7; text-transform: uppercase; margin-top: 2px; }
+    .stats-row { display: flex; gap: 10px; }
+    .stat-card { flex: 1; background: rgba(200,132,42,0.2); border-radius: 8px; padding: 8px 10px; text-align: center; border: 1px solid rgba(200,132,42,0.3); }
+    .stat-num { font-size: 22px; font-weight: bold; color: #F0D5A8; }
+    .stat-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.7; }
+
+    .form-header { background: #2C1A0E; color: #FFF8EF; padding: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #C8842A; }
+    .back-btn { background: none; border: none; color: #F0D5A8; font-size: 14px; cursor: pointer; padding: 0; }
+    .form-title { font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+
+    .body { flex: 1; padding: 20px 16px; overflow-y: auto; }
+    .form-body { flex: 1; padding: 16px 16px 24px; overflow-y: auto; }
+
+    .big-btn { width: 100%; background: #C8842A; color: #FFF8EF; border: none; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(200,132,42,0.4); }
+    .big-btn-icon { font-size: 32px; font-weight: bold; }
+    .big-btn-title { font-size: 17px; font-weight: bold; text-align: left; }
+    .big-btn-sub { font-size: 12px; opacity: 0.8; margin-top: 2px; text-align: left; }
+
+    .section-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A6049; margin-bottom: 10px; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: #7A6049; }
+    .empty-icon { font-size: 36px; }
+    .empty-text { margin-top: 12px; line-height: 1.6; font-size: 14px; }
+
+    .record-card { width: 100%; background: #FFF8EF; border: 1px solid #E0C9A6; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 2px 6px rgba(44,26,14,0.06); text-align: left; }
+    .folder-dot { width: 10px; height: 32px; border-radius: 5px; flex-shrink: 0; }
+    .record-info { flex: 1; }
+    .record-title { font-size: 15px; font-weight: bold; color: #2C1A0E; }
+    .record-meta { font-size: 12px; color: #7A6049; margin-top: 2px; }
+    .record-coords { font-size: 11px; color: #7A6049; margin-top: 2px; }
+    .cond-badge { font-size: 10px; padding: 3px 7px; border-radius: 20px; font-weight: bold; letter-spacing: 0.5px; flex-shrink: 0; }
+
+    .tab-bar { display: flex; background: #FFF8EF; border-bottom: 2px solid #E0C9A6; }
+    .tab-btn { flex: 1; padding: 10px 4px; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-size: 12px; font-family: Georgia, serif; background: #FFF8EF; color: #7A6049; }
+    .tab-btn.active { font-weight: bold; background: #F5EFE6; color: #C8842A; border-bottom-color: #C8842A; }
+    .tab-btn.done { color: #4E8C7C; }
+    .tab-num { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; align-items: center; justify-content: center; margin-right: 4px; font-weight: bold; background: #E0C9A6; color: #7A6049; }
+    .tab-num.on { background: #C8842A; color: #fff; }
+
+    .label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #7A6049; margin-bottom: 6px; margin-top: 14px; }
+    .input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #E0C9A6; background: #FFF8EF; color: #2C1A0E; font-size: 14px; font-family: Georgia, serif; outline: none; }
+    textarea.input { resize: vertical; line-height: 1.5; }
+    .two-col { display: flex; gap: 12px; }
+    .two-col > div { flex: 1; }
+
+    .folder-row { display: flex; gap: 8px; margin-bottom: 4px; }
+    .folder-btn { flex: 1; padding: 10px 0; border-radius: 8px; border: 2px solid #E0C9A6; background: #FFF8EF; color: #7A6049; font-weight: bold; cursor: pointer; font-size: 15px; font-family: Georgia, serif; }
+
+    .type-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }
+    .type-chip { padding: 7px 12px; border-radius: 20px; border: 1.5px solid #E0C9A6; background: #FFF8EF; color: #2C1A0E; cursor: pointer; font-size: 13px; font-family: Georgia, serif; }
+    .type-chip.selected { background: #C8842A; color: #fff; border-color: #C8842A; }
+
+    .cond-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+    .cond-chip { padding: 8px 14px; border-radius: 8px; border: 1.5px solid #E0C9A6; background: #FFF8EF; color: #2C1A0E; cursor: pointer; font-size: 13px; font-family: Georgia, serif; }
+    .cond-chip.selected { background: #C8842A; color: #fff; border-color: #C8842A; font-weight: bold; }
+
+    .nav-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .prev-btn { padding: 12px 20px; border-radius: 8px; border: 1.5px solid #E0C9A6; background: #FFF8EF; color: #7A6049; cursor: pointer; font-size: 14px; font-family: Georgia, serif; }
+    .next-btn { padding: 12px 24px; border-radius: 8px; border: none; background: #C8842A; color: #fff; cursor: pointer; font-size: 14px; font-family: Georgia, serif; font-weight: bold; }
+    .save-btn { padding: 12px 24px; border-radius: 8px; border: none; background: #4E8C7C; color: #fff; cursor: pointer; font-size: 14px; font-family: Georgia, serif; font-weight: bold; flex: 1; transition: background 0.3s; }
+    .save-btn.saved { background: #2d6a4f; }
+    .warning { color: #856404; font-size: 12px; margin-top: 8px; background: #fff3cd; padding: 8px 12px; border-radius: 6px; }
+
+    .view-card { background: #2C1A0E; color: #FFF8EF; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+    .view-id { font-size: 11px; letter-spacing: 2px; opacity: 0.6; text-transform: uppercase; }
+    .view-type { font-size: 22px; font-weight: bold; }
+    .view-cond { align-self: flex-start; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: #F0D5A8; color: #2C1A0E; font-weight: bold; }
+    .field-block { margin-bottom: 14px; border-bottom: 1px solid #E0C9A6; padding-bottom: 12px; }
+    .field-lbl { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #7A6049; margin-bottom: 4px; }
+    .field-val { font-size: 15px; color: #2C1A0E; line-height: 1.5; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+  // ── Constants ────────────────────────────────────────────────
+  const TYPES = [
+    "Pottery / Ceramics","Bone / Skeletal","Stone Tool / Lithic",
+    "Metal Object","Coin / Currency","Jewelry / Ornament",
+    "Textile / Fabric","Glass","Wood / Organic","Inscription / Writing",
+    "Figurine / Sculpture","Building Material","Other"
+  ];
+  const CONDITIONS = ["Excellent","Good","Fair","Fragile","Fragmentary","Heavily Degraded"];
+  const FOLDER_COLORS = ["#C8842A","#7B9E4E","#5B7FA6","#9B5E8C","#C05050","#4E8C7C"];
+  const COND_COLORS = {
+    Excellent:  ["#d4edda","#2d6a4f"],
+    Good:       ["#d4edda","#2d6a4f"],
+    Fair:       ["#e2e3e5","#383d41"],
+    Fragile:    ["#fff3cd","#856404"],
+    Fragmentary:["#f8d7da","#721c24"],
+    "Heavily Degraded":["#f8d7da","#721c24"]
+  };
+
+  // ── App State ────────────────────────────────────────────────
+  const state = {
+    screen: "home",
+    section: 0,
+    records: [],
+    viewing: null,
+    saving: false,
+    form: blankForm()
+  };
+
+  function blankForm() {
+    return {
+      site: "", folder: "",
+      date: today(), time: nowTime(),
+      lat: "", lon: "", elevation: "",
+      type: "", condition: "", description: "", notes: ""
+    };
+  }
+  function today() { return new Date().toISOString().split("T")[0]; }
+  function nowTime() { return new Date().toTimeString().slice(0, 5); }
+  function esc(s) {
+    return String(s || "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  // ── Render Engine ────────────────────────────────────────────
+  function render() {
+    const app = document.getElementById("app");
+    if (state.screen === "home")   app.innerHTML = homeHTML();
+    if (state.screen === "record") app.innerHTML = recordHTML();
+    if (state.screen === "view")   app.innerHTML = viewHTML();
+    bindEvents();
+  }
+
+  // ── Home Screen ──────────────────────────────────────────────
+  function homeHTML() {
+    const total = state.records.length;
+    const todayCount = state.records.filter(r => r.date === today()).length;
+    const sites = new Set(state.records.map(r => r.site).filter(Boolean)).size;
+
+    let cards = "";
+    if (!state.records.length) {
+      cards = `<div class="empty-state">
+        <div class="empty-icon">⛏️</div>
+        <div class="empty-text">No artifacts logged yet.<br>Start recording in the field!</div>
+      </div>`;
+    } else {
+      state.records.forEach((r, i) => {
+        const [bg, fg] = COND_COLORS[r.condition] || ["#e2e3e5","#383d41"];
+        cards += `
+          <button class="record-card" data-idx="${i}">
+            <div class="folder-dot" style="background:${FOLDER_COLORS[i % FOLDER_COLORS.length]}"></div>
+            <div class="record-info">
+              <div class="record-title">${esc(r.type)}</div>
+              <div class="record-meta">${esc(r.site || "Unnamed Site")} · ${r.date}</div>
+              ${r.lat ? `<div class="record-coords">📍 ${esc(r.lat)}, ${esc(r.lon)}</div>` : ""}
+            </div>
+            <div class="cond-badge" style="background:${bg};color:${fg}">${esc(r.condition)}</div>
+          </button>`;
+      });
+    }
+
+    return `
+      <div class="header">
+        <div class="header-top">
+          <div>
+            <div class="app-title">FIELDBOX</div>
+            <div class="app-sub">Artifact Field Recorder</div>
+          </div>
+          <div style="font-size:32px">🏺</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">Total</div></div>
+          <div class="stat-card"><div class="stat-num">${todayCount}</div><div class="stat-label">Today</div></div>
+          <div class="stat-card"><div class="stat-num">${sites}</div><div class="stat-label">Sites</div></div>
+        </div>
+      </div>
+      <div class="body">
+        <button class="big-btn" id="btn-new">
+          <span class="big-btn-icon">＋</span>
+          <div>
+            <div class="big-btn-title">Log New Artifact</div>
+            <div class="big-btn-sub">Record location, type &amp; condition</div>
+          </div>
+        </button>
+        <div class="section-title">Recent Finds</div>
+        ${cards}
+      </div>`;
+  }
+
+  // ── Record Form ──────────────────────────────────────────────
+  function recordHTML() {
+    const TABS = ["Location", "Artifact", "Description"];
+    const sec = state.section;
+
+    const tabs = TABS.map((name, i) => {
+      const cls = i === sec ? "active" : i < sec ? "done" : "";
+      const numCls = i <= sec ? "on" : "";
+      return `<button class="tab-btn ${cls}" data-tab="${i}">
+        <span class="tab-num ${numCls}">${i+1}</span>${name}
+      </button>`;
+    }).join("");
+
+    let content = "";
+
+    if (sec === 0) {
+      const folderBtns = ["A","B","C","D","E","F"].map((f, i) => {
+        const sel = state.form.folder === f;
+        const style = sel
+          ? `background:${FOLDER_COLORS[i]};color:#fff;border-color:${FOLDER_COLORS[i]}`
+          : "";
+        return `<button class="folder-btn" data-folder="${f}" style="${style}">${f}</button>`;
+      }).join("");
+
+      content = `
+        <div class="label">Site Name *</div>
+        <input class="input" id="f-site" placeholder="e.g. Pompeii Sector 4B" value="${esc(state.form.site)}">
+        <div class="label">Folder / Box Slot</div>
+        <div class="folder-row">${folderBtns}</div>
+        <div class="two-col">
+          <div><div class="label">Date</div><input class="input" type="date" id="f-date" value="${state.form.date}"></div>
+          <div><div class="label">Time</div><input class="input" type="time" id="f-time" value="${state.form.time}"></div>
+        </div>
+        <div class="label">GPS Coordinates</div>
+        <div class="two-col">
+          <div><input class="input" id="f-lat" placeholder="Latitude" value="${esc(state.form.lat)}"></div>
+          <div><input class="input" id="f-lon" placeholder="Longitude" value="${esc(state.form.lon)}"></div>
+        </div>
+        <div style="margin-top:12px">
+          <input class="input" id="f-elev" placeholder="Elevation (m)" value="${esc(state.form.elevation)}">
+        </div>`;
+    }
+
+    if (sec === 1) {
+      const typeChips = TYPES.map(t =>
+        `<button class="type-chip${state.form.type === t ? " selected" : ""}" data-type="${esc(t)}">${esc(t)}</button>`
+      ).join("");
+      const condChips = CONDITIONS.map(c =>
+        `<button class="cond-chip${state.form.condition === c ? " selected" : ""}" data-cond="${esc(c)}">${esc(c)}</button>`
+      ).join("");
+
+      content = `
+        <div class="label">Artifact Type *</div>
+        <div class="type-grid">${typeChips}</div>
+        <div class="label">Condition *</div>
+        <div class="cond-grid">${condChips}</div>`;
+    }
+
+    if (sec === 2) {
+      content = `
+        <div class="label">Description</div>
+        <textarea class="input" id="f-desc" rows="4"
+          placeholder="Physical description: size, color, material, markings...">${esc(state.form.description)}</textarea>
+        <div class="label">Field Notes</div>
+        <textarea class="input" id="f-notes" rows="3"
+          placeholder="Context, surrounding finds, excavation notes...">${esc(state.form.notes)}</textarea>`;
+    }
+
+    const canSave = state.form.site && state.form.type && state.form.condition;
+    const navBtns = `
+      ${sec > 0 ? `<button class="prev-btn" id="btn-prev">← Prev</button>` : ""}
+      ${sec < 2
+        ? `<button class="next-btn" id="btn-next">Next →</button>`
+        : `<button class="save-btn${state.saving ? " saved" : ""}" id="btn-save">
+            ${state.saving ? "✓ Saved!" : "Save Artifact"}
+           </button>`}`;
+
+    return `
+      <div class="form-header">
+        <button class="back-btn" id="btn-back">← Back</button>
+        <div class="form-title">Log Artifact</div>
+        <div style="width:60px"></div>
+      </div>
+      <div class="tab-bar">${tabs}</div>
+      <div class="form-body">
+        ${content}
+        <div class="nav-row">${navBtns}</div>
+        ${sec === 2 && !canSave
+          ? `<div class="warning">⚠️ Please fill in Site Name, Type, and Condition to save.</div>`
+          : ""}
+      </div>`;
+  }
+
+  // ── View Detail ──────────────────────────────────────────────
+  function viewHTML() {
+    const r = state.viewing;
+    if (!r) return "";
+
+    const rows = [
+      ["Site", r.site],
+      r.folder   ? ["Box Folder", `Slot ${r.folder}`] : null,
+      ["Date & Time", `${r.date} at ${r.time}`],
+      r.lat      ? ["Coordinates", `${r.lat}, ${r.lon}${r.elevation ? ` · ${r.elevation}m` : ""}`] : null,
+      r.description ? ["Description", r.description] : null,
+      r.notes    ? ["Field Notes", r.notes] : null,
+    ].filter(Boolean).map(([lbl, val]) => `
+      <div class="field-block">
+        <div class="field-lbl">${lbl}</div>
+        <div class="field-val">${esc(val)}</div>
+      </div>`).join("");
+
+    return `
+      <div class="form-header">
+        <button class="back-btn" id="btn-back">← Back</button>
+        <div class="form-title">Artifact Detail</div>
+        <div style="width:60px"></div>
+      </div>
+      <div class="form-body">
+        <div class="view-card">
+          <div class="view-id">${r.id}</div>
+          <div class="view-type">${esc(r.type)}</div>
+          <div class="view-cond">${esc(r.condition)}</div>
+        </div>
+        ${rows}
+      </div>`;
+  }
+
+  // ── Event Binding ────────────────────────────────────────────
+  function bindEvents() {
+
+    // Home
+    on("btn-new", "click", () => goTo("record"));
+
+    document.querySelectorAll("[data-idx]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.viewing = state.records[+btn.dataset.idx];
+        goTo("view");
+      });
+    });
+
+    // Back
+    on("btn-back", "click", () => goTo("home"));
+
+    // Tabs (sync first, then jump)
+    document.querySelectorAll("[data-tab]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        syncInputs();
+        state.section = +btn.dataset.tab;
+        render();
+      });
+    });
+
+    // Folder selection
+    document.querySelectorAll("[data-folder]").forEach(btn => {
+      btn.addEventListener("click", () => { state.form.folder = btn.dataset.folder; render(); });
+    });
+
+    // Type chips
+    document.querySelectorAll("[data-type]").forEach(btn => {
+      btn.addEventListener("click", () => { state.form.type = btn.dataset.type; render(); });
+    });
+
+    // Condition chips
+    document.querySelectorAll("[data-cond]").forEach(btn => {
+      btn.addEventListener("click", () => { state.form.condition = btn.dataset.cond; render(); });
+    });
+
+    // Prev
+    on("btn-prev", "click", () => { syncInputs(); state.section--; render(); });
+
+    // Next
+    on("btn-next", "click", () => { syncInputs(); state.section++; render(); });
+
+    // Save
+    on("btn-save", "click", () => {
+      syncInputs();
+      if (!state.form.site || !state.form.type || !state.form.condition) return;
+      const id = "ARF-" + String(state.records.length + 1).padStart(4, "0");
+      state.records.unshift({ ...state.form, id });
+      state.saving = true;
+      render();
+      setTimeout(() => {
+        state.saving = false;
+        state.form = blankForm();
+        state.section = 0;
+        goTo("home");
+      }, 1500);
+    });
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function on(id, event, fn) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(event, fn);
+  }
+
+  function goTo(screen) {
+    state.screen = screen;
+    render();
+  }
+
+  // Reads live input values back into state.form before any navigation
+  function syncInputs() {
+    const val = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
+    if (state.section === 0) {
+      const site = val("f-site"); if (site !== undefined) state.form.site = site;
+      const date = val("f-date"); if (date !== undefined) state.form.date = date;
+      const time = val("f-time"); if (time !== undefined) state.form.time = time;
+      const lat  = val("f-lat");  if (lat  !== undefined) state.form.lat  = lat;
+      const lon  = val("f-lon");  if (lon  !== undefined) state.form.lon  = lon;
+      const elev = val("f-elev"); if (elev !== undefined) state.form.elevation = elev;
+    }
+    if (state.section === 2) {
+      const desc  = val("f-desc");  if (desc  !== undefined) state.form.description = desc;
+      const notes = val("f-notes"); if (notes !== undefined) state.form.notes = notes;
+    }
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────
+  render();
+</script>
+</body>
+</html>
